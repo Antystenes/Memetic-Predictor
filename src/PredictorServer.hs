@@ -44,7 +44,7 @@ someFunc = do
 
     simpleApp :: Application
     simpleApp a respond = do
-      let query = unEscapeString . tail . BS.unpack . rawQueryString $ a
+      let query = unEscapeString . BS.unpack . fst . head . queryString $ a
       hPutStrLn hin query
       hFlush hin
       putStrLn $ "Processing: " ++ query
