@@ -14,6 +14,7 @@ import           Data.Text (Text)
 import qualified Data.ByteString.Char8 as BS
 import qualified Data.ByteString.Lazy.Char8 as BL
 import qualified System.Process as P
+import           Data.List (sortBy)
 import           Control.Arrow
 import           Control.Monad
 import           System.IO
@@ -36,11 +37,12 @@ someFunc = do
   memes                  <- getMemes
   initPy herr
   let
-    printHdl         = hShow >=> putStrLn
-
-    readOut          = (++) <$> hGetLine herr <*> hGetLine herr
-
-    jSonify question = J.encode . J.makeObj . (:[(J.toJSKey ("question"::String), J.showJSON question)]). (,) (J.toJSKey ("results" :: String)) . J.makeObj . map ((flip (HM.lookupDefault " ") memes >>> T.unpack >>> J.toJSKey) *** J.showJSON) . zip [1..] .  (read :: String -> [Float]) . map (\x -> if x == ' ' then ',' else x)
+    printHdl              = hShow >=> putStrLn
+    readOut               = (++) <$> hGetLine herr <*> hGetLine herr
+    jSonify question best = J.encode . J.makeObj . (:[(J.toJSKey ("question"::String), J.showJSON question), (J.toJSKey ("best" :: String), J.showJSON best)]) . (,) (J.toJSKey ("results" :: String)) . J.makeObj . map ((T.unpack >>> J.toJSKey) *** J.showJSON)
+    getList               = map (first $ flip (HM.lookupDefault " ") memes) . zip [1..] . (read :: String -> [Float]) . map (\x -> if x == ' ' then ',' else x)
+    bestOpt :: Ord b => [(a,b)] -> a
+    bestOpt               = fst . head . sortBy (\a b -> compare (snd a) (snd b))
 
     simpleApp :: Application
     simpleApp a respond = do
@@ -48,7 +50,9 @@ someFunc = do
       hPutStrLn hin query
       hFlush hin
       putStrLn $ "Processing: " ++ query
-      response <- jSonify query <$> readOut
+      results  <-getList <$> readOut
+      let best     = bestOpt results
+          response = jSonify query best results
       respond $ responseLBS
         status200
         [("Content-Type","application/json")]
