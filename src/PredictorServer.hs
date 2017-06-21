@@ -42,7 +42,7 @@ someFunc = do
     jSonify question best = J.encode . J.makeObj . (:[(J.toJSKey ("question"::String), J.showJSON question), (J.toJSKey ("best" :: String), J.showJSON best)]) . (,) (J.toJSKey ("results" :: String)) . J.makeObj . map ((T.unpack >>> J.toJSKey) *** J.showJSON)
     getList               = map (first $ flip (HM.lookupDefault " ") memes) . zip [1..] . (read :: String -> [Float]) . map (\x -> if x == ' ' then ',' else x)
     bestOpt :: Ord b => [(a,b)] -> a
-    bestOpt               = fst . head . sortBy (\a b -> compare (snd a) (snd b))
+    bestOpt               = fst . head . sortBy (\a b -> compare (snd b) (snd a))
 
     simpleApp :: Application
     simpleApp a respond = do
