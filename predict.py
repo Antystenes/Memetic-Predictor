@@ -30,6 +30,8 @@ with open('memes', 'r') as memefile:
         (ix, meme) = line.split()
         memes[int(ix) - 1] = " ".join(meme.split("-")).lower()
 
+print(memes)
+
 def inverse_transform(item):
     return memes[np.argmax(item)]
 

@@ -53,6 +53,7 @@ someFunc = do
       results  <-getList <$> readOut
       let best     = bestOpt results
           response = jSonify query best results
+      TIO.putStrLn best
       respond $ responseLBS
         status200
         [("Content-Type","application/json")]
