@@ -1,6 +1,7 @@
 {-# LANGUAGE OverloadedStrings#-}
 module PredictorServer
     ( someFunc
+    , mock
     ) where
 
 import           Network.Wai
@@ -30,6 +31,27 @@ getMemes = foldr insertToMap HM.empty . T.lines <$> TIO.readFile "memes"
 
 initPy :: Handle -> IO ()
 initPy hndl = hGetLine hndl >>= \x -> (x == "Using Theano backend.") `unless` (putStrLn x >> initPy hndl)
+
+mock = do
+  memes                  <- getMemes
+  let jSonify question best = J.encode . J.makeObj . (:[(J.toJSKey ("question"::String), J.showJSON question), (J.toJSKey ("best" :: String), J.showJSON best)]) . (,) (J.toJSKey ("results" :: String)) . J.makeObj . map ((T.unpack >>> J.toJSKey) *** J.showJSON)
+      bestOpt :: Ord b => [(a,b)] -> a
+      bestOpt               = fst . head . sortBy (\a b -> compare (snd b) (snd a))
+      getList               = map (first $ flip (HM.lookupDefault " ") memes) . zip [1..] . (read :: String -> [Float]) . map (\x -> if x == ' ' then ',' else x)
+      simpleApp :: Application
+      simpleApp a respond = do
+        let query = unEscapeString . BS.unpack . fst . head . queryString $ a
+        putStrLn $ "Processing: " ++ query
+        let results  = getList "[1 2 3 4 5 6 7 8 9 10 11 12 13 14 15 16 17]"
+            best     = bestOpt results
+            response = jSonify query best results
+        TIO.putStrLn best
+        respond $ responseLBS
+          status200
+          [("Content-Type","application/json")]
+          (BL.pack response)
+  putStrLn "startingMock"
+  run 8080 simpleApp
 
 someFunc :: IO ()
 someFunc = do
