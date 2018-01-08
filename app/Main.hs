@@ -3,4 +3,4 @@ module Main where
 import PredictorServer
 
 main :: IO ()
-main = someFunc
+main = memeticApp "models/memetic-model.0.1"

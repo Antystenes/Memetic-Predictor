@@ -16,6 +16,14 @@ cabal-version:       >=1.10
 library
   hs-source-dirs:      src
   exposed-modules:     PredictorServer
+                       AI.Singularity
+                       AI.Singularity.Data.Matrix
+                       AI.Singularity.Data.Network
+                       AI.Singularity.Data.Vector
+                       AI.Singularity.Training
+                       AI.Singularity.Utils
+                       AI.MemeticNet
+
   build-depends:       base
                      , bytestring
                      , filepath
@@ -28,6 +36,18 @@ library
                      , warp
                      , json
                      , network-uri
+                     , lattices
+                     , lens
+                     , conduit
+                     , conduit-extra
+                     , transformers
+                     , mtl
+                     , containers
+                     , hmatrix
+                     , vector
+                     , ad
+                     , random
+                     , ghc-typelits-knownnat
   default-language:    Haskell2010
 
 executable Memetic-Predictor-Server

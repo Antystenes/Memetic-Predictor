@@ -2,6 +2,7 @@
 module PredictorServer
     ( someFunc
     , mock
+    , memeticApp
     ) where
 
 import           Network.Wai
@@ -21,13 +22,38 @@ import           Control.Monad
 import           System.IO
 import           Network.URI
 
+import AI.MemeticNet
+
 type Memes = HM.HashMap Int Text
+
+memeticApp fn1 = do
+  memeticEvaluator <- memeticEvaluatorFactory fn1
+  memes <- getMemes
+  let jSonify question best = J.encode . J.makeObj . (:[(J.toJSKey ("question"::String), J.showJSON question), (J.toJSKey ("best" :: String), J.showJSON best)]) . (,) (J.toJSKey ("results" :: String)) . J.makeObj . map ((T.unpack >>> J.toJSKey) *** J.showJSON)
+      bestOpt :: Ord b => [(a,b)] -> a
+      bestOpt               = fst . head . sortBy (\a b -> compare (snd b) (snd a))
+      getList               = map (first $ flip (HM.lookupDefault " ") memes) . zip [0..]
+      simpleApp :: Application
+      simpleApp a respond = do
+        let query = unEscapeString . BS.unpack . fst . head . queryString $ a
+        putStrLn $ "Processing: " ++ query
+        let results  = getList . memeticEvaluator $ query
+            best     = bestOpt results
+            response = jSonify query best results
+        TIO.putStrLn best
+        respond $ responseLBS
+          status200
+          [("Content-Type","application/json")]
+          (BL.pack response)
+  putStrLn "starting Server"
+  run 8080 simpleApp
+
 
 getMemes :: IO Memes
 getMemes = foldr insertToMap HM.empty . T.lines <$> TIO.readFile "memes"
   where insertToMap line map =
           let [nr,meme] = T.splitOn "\t" line
-          in HM.insert (read . T.unpack $ nr) meme map
+          in HM.insert (flip mod 17 . read . T.unpack $ nr) meme map
 
 initPy :: Handle -> IO ()
 initPy hndl = hGetLine hndl >>= \x -> (x == "Using Theano backend.") `unless` (putStrLn x >> initPy hndl)
